@@ -6,7 +6,12 @@ import sys
 import time
 import paramiko
 import netmiko
+from datetime import datetime
 
+def match_lst(text, regex):
+    text = '\n'.join(text.splitlines())
+    re_obj = re.compile(regex, re.MULTILINE)
+    return re_obj.findall(text)
 
 def diagnose_mode(ssh_connection):
     result = ""
@@ -58,27 +63,41 @@ def connect(d,cmdlst,data_dir,LOG):
     	    password=d['password']
 	)
     except netmiko.ssh_exception.NetMikoTimeoutException:
-	print "\n%s: Connection timout" % d['host']
+    	print "\n%s: Connection timout" % d['host']
 	LOG.write("\n%s: Connection timout" % d['host'])
     except netmiko.ssh_exception.NetMikoAuthenticationException:
-	print "\n%s: Authentication problem" % d['host']
+    	print "\n%s: Authentication problem" % d['host']
 	LOG.write("\n%s: Authentication problem" % d['host'])
-    else:
+	else:
 	# prepend the command prompt to the result (used to identify the local host)
+	collect_time = datetime.now()
+	hostname = d['host']
 	result = ssh_connection.find_prompt() + "\n"
 
-	FO=open(os.path.join(data_dir,d['host']),'w')
+	#open logfile to write parsed results
+	with open(os.path.join(data_dir,"collect_errors.log"), "a") as ce_log:
 
-	for c in cmdlst:
-#	    print c
-	    FO.write("""
-
-===============================================================================
-                 """ + c + """
-===============================================================================
-""")
-	    FO.write(exec_command(ssh_connection,c) + "\n")
-
-	# close SSH connection
+		for c in cmdlst:
+			print c
+			regex_err = r'(\d*/\d*)\s*([\d-]*)\s*([\d-]*)'
+			re_m_lst = match_lst(exec_command(ssh_connection,c),regex_err)
+			for l in re_m_lst:
+				ce_log.write(str(collect_time) + ";" hostname + ";" + l[0] + ";" + l[1] + ";" + l[2])
 	ssh_connection.disconnect()
-	FO.close()
+	ce_log.close()
+
+#	FO=open(os.path.join(data_dir,log.log),'w+')
+#
+#	for c in cmdlst:
+#	    print c
+#	    FO.write("""
+#
+#===============================================================================
+#                 """ + c + """
+#===============================================================================
+#""")
+#	    FO.write(exec_command(ssh_connection,c) + "\n")
+#
+#	# close SSH connection
+#	ssh_connection.disconnect()
+#	FO.close()
