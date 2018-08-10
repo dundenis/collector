@@ -37,7 +37,7 @@ print """\n=====================================================================
 time_stamp=time.strftime("%y%m%d%H%M",time.localtime(time.time()))
 
 # Open log file
-LOG=open(os.path.join(data_dir,"cwalk-" + time_stamp + ".log"),'w')
+LOG=open(os.path.join(data_dir,"cwalk.log"),'a')
 
 # Generate work threads
 requests=[]

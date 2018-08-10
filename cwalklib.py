@@ -51,46 +51,48 @@ def exec_command(ssh_connection,command):
 
 
 def connect(d,cmdlst,data_dir,LOG):
-
-    try:
-	print "\nTrying " + d['host'] + "..."
-	LOG.write("\nTrying " + d['host'] + "...")
-	# establish a connection to the device
-	ssh_connection = netmiko.ConnectHandler(
-    	    device_type='huawei',
-    	    ip=d['ip'],
-    	    username=d['login'],
-    	    password=d['password']
-	)
-    except netmiko.ssh_exception.NetMikoTimeoutException:
-    	print "\n%s: Connection timout" % d['host']
-	LOG.write("\n%s: Connection timout" % d['host'])
-    except netmiko.ssh_exception.NetMikoAuthenticationException:
-    	print "\n%s: Authentication problem" % d['host']
-	LOG.write("\n%s: Authentication problem" % d['host'])
+	try:
+		collect_time = datetime.now()
+		print str(collect_time) + " - Checking " + d['host'] + "..."
+		LOG.write(str(collect_time) + " - Checking " + d['host'] + "...\n")
+		# establish a connection to the device
+		ssh_connection = netmiko.ConnectHandler(
+			device_type='huawei',
+			ip=d['ip'],
+			username=d['login'],
+			password=d['password'])
+	except netmiko.ssh_exception.NetMikoTimeoutException:
+		print "\n%s: Connection timout" % d['host']
+		LOG.write("\n%s - %s: Connection timout" % (str(datetime.now()),d['host']))
+	except netmiko.ssh_exception.NetMikoAuthenticationException:
+		print "\n%s: Authentication problem" % d['host']
+		LOG.write("\n%s - %s: Authentication problem" % (str(datetime.now()),d['host']))
 	else:
-	# prepend the command prompt to the result (used to identify the local host)
-	collect_time = datetime.now()
-	hostname = d['host']
-	result = ssh_connection.find_prompt() + "\n"
-
-	#open logfile to write parsed results
-	with open(os.path.join(data_dir,"collect_errors.log"), "a") as ce_log:
-
-		for c in cmdlst:
-			print c
-			regex_err = r'(\d*/\d*)\s*([\d-]*)\s*([\d-]*)'
-			re_m_lst = match_lst(exec_command(ssh_connection,c),regex_err)
-			for l in re_m_lst:
-				ce_log.write(str(collect_time) + ";" hostname + ";" + l[0] + ";" + l[1] + ";" + l[2])
-	ssh_connection.disconnect()
-	ce_log.close()
+		# prepend the command prompt to the result (used to identify the local host)
+		
+		hostname = d['host']
+		result = ssh_connection.find_prompt() + "\n"
+		#open logfile to write parsed results
+		with open(os.path.join(data_dir,"collect_errors.log"), "a") as ce_log:
+			for c in cmdlst:
+				print c
+				regex_err = r'(\d*/\d*)\s*([\d-]*)\s*([\d-]*)'
+				re_m_lst = match_lst(exec_command(ssh_connection,c),regex_err)
+				for l in re_m_lst:
+					sev ='OK'
+					if l[1] == '--' or l[2] == '--':
+						sev = 'N/A'
+					elif int(l[1])!=0 or int(l[2])!=0: 
+						sev = 'CRITICAL'
+					ce_log.write(str(collect_time) + ";" + hostname + ";" + l[0] + ";" + l[1] + ";" + l[2]+";" + sev + "\n")
+		ssh_connection.disconnect()
+		ce_log.close()
 
 #	FO=open(os.path.join(data_dir,log.log),'w+')
 #
 #	for c in cmdlst:
-#	    print c
-#	    FO.write("""
+#		print c
+#		FO.write("""
 #
 #===============================================================================
 #                 """ + c + """
