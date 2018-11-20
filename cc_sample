@@ -1,0 +1,36 @@
+c = {'10.35.81.21': {'1': {'End Date': u'2018-11-13', 'MAC Address': u'b40c-25e0-4010', 'Bridge Domain': u'1042130', 'Start Time': u'12:14:39', 'End Time': u'12:14:39', 'Move number': 2, 'Start Date': u'2018-11-13'}, '0': {'End Date': u'2018-11-15', 'MAC Address': u'0000-5e00-0133', 'Bridge Domain': u'1040003', 'Start Time': u'19:23:31', 'End Time': u'19:23:31', 'Move number': 1, 'Start Date': u'2018-11-15'}}, '10.35.81.22': {'0': {'End Date': u'2018-11-15', 'MAC Address': u'0000-5e00-01aa', 'Bridge Domain': u'1040003', 'Start Time': u'19:23:31', 'End Time': u'19:23:31', 'Move number': 1, 'Start Date': u'2018-11-15'}}}
+
+
+
+
+
+
+output_template= """
+%(MAC Address)s !!!
+"""
+
+
+for key in c.keys():
+	for item in c[key]:
+		print output_template%c[key][item]
+        #print listtmp
+
+
+
+
+
+for host in c.keys():
+	for 
+
+
+results_list = ( elem for elem in 
+
+
+
+for i, mac_dict in enumerate(c[key]):
+	for item in mac_dict.keys():
+		tmplst += key 
+
+
+class report:
+	

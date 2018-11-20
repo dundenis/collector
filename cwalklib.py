@@ -7,6 +7,27 @@ import time
 import paramiko
 import netmiko
 from datetime import datetime
+from cparse import _RegExLibFlap,_ParseFlap
+
+class OperationLog:
+	def __init__(self):
+		self.MSG = ""
+
+	def WriteToFile(self, MSG):
+		tmpmsg = ""
+		dataTime = str(datetime.now())
+		with open(os.path.join('operation_log.log'),'a') as logfile:
+			tmpmsg += dataTime + "--" + MSG 
+			print tmpmsg
+			logfile.write(tmpmsg + "\n")
+			logfile.close()
+	
+	def _stdout(self, MSG):
+		tmpmsg = ""
+		dataTime = str(datetime.now())
+		#lock.acquire()
+		print dataTime + self.MSG
+		#lock.release()
 
 def match_lst(text, regex):
     text = '\n'.join(text.splitlines())
@@ -31,13 +52,14 @@ def exit_diagnose_mode(ssh_connection):
 	result = ssh_connection.send_command("quit",expect_string=ssh_connection.base_prompt)
 	ssh_connection.exit_config_mode()
     else:
-	pass
+		pass
     return result
 
 
-def exec_command(ssh_connection,command):
-    print ssh_connection.base_prompt
-    print "Executing: \"" + command + "\""
+def exec_command(ssh_connection,command,device):
+
+    #print ssh_connection.base_prompt
+    #print "%s--%s: executing command:%s" % (str(datetime.now()),device['host'],command)
     if (command == "diagnose"):
 	result = diagnose_mode(ssh_connection)
     elif (command == "quit"):
@@ -50,56 +72,61 @@ def exec_command(ssh_connection,command):
     return result
 
 
-def connect(d,cmdlst,data_dir,LOG):
+def CollectData(device,manager_dict, lock):
+	cmd = "display mac-address flapping aged-table "
+	tmp_dict={}
+	hostname = device['host']
+	log = OperationLog()
 	try:
-		collect_time = datetime.now()
-		print str(collect_time) + " - Checking " + d['host'] + "..."
-		LOG.write(str(collect_time) + " - Checking " + d['host'] + "...\n")
-		# establish a connection to the device
+		lock.acquire()
+		log.WriteToFile(hostname + ": start checking")
+		lock.release()
+		#connect to device via ssh
 		ssh_connection = netmiko.ConnectHandler(
 			device_type='huawei',
-			ip=d['ip'],
-			username=d['login'],
-			password=d['password'])
+			ip=device['ip'],
+			username=device['login'],
+			password=device['password'])
 	except netmiko.ssh_exception.NetMikoTimeoutException:
-		print "\n%s: Connection timout" % d['host']
-		LOG.write("\n%s - %s: Connection timout" % (str(datetime.now()),d['host']))
+		lock.acquire()
+		log.WriteToFile(hostname + ": ssh timeout")
+		lock.release()
 	except netmiko.ssh_exception.NetMikoAuthenticationException:
-		print "\n%s: Authentication problem" % d['host']
-		LOG.write("\n%s - %s: Authentication problem" % (str(datetime.now()),d['host']))
+		lock.acquire()
+		log.WriteToFile(hostname + ": authentication failed")
+		lock.release()
 	else:
-		# prepend the command prompt to the result (used to identify the local host)
-		
-		hostname = d['host']
-		result = ssh_connection.find_prompt() + "\n"
-		#open logfile to write parsed results
-		with open(os.path.join(data_dir,"collect_errors.log"), "a") as ce_log:
-			for c in cmdlst:
-				print c
-				regex_err = r'(\d*/\d*)\s*([\d-]*)\s*([\d-]*)'
-				re_m_lst = match_lst(exec_command(ssh_connection,c),regex_err)
-				for l in re_m_lst:
-					sev ='OK'
-					if l[1] == '--' or l[2] == '--':
-						sev = 'N/A'
-					elif int(l[1])!=0 or int(l[2])!=0: 
-						sev = 'CRITICAL'
-					ce_log.write(str(collect_time) + ";" + hostname + ";" + l[0] + ";" + l[1] + ";" + l[2]+";" + sev + "\n")
-		ssh_connection.disconnect()
-		ce_log.close()
+		lock.acquire()
+		log.WriteToFile(hostname + ": ssh session established successfully")
+		lock.release()
 
-#	FO=open(os.path.join(data_dir,log.log),'w+')
-#
-#	for c in cmdlst:
-#		print c
-#		FO.write("""
-#
-#===============================================================================
-#                 """ + c + """
-#===============================================================================
-#""")
-#	    FO.write(exec_command(ssh_connection,c) + "\n")
-#
-#	# close SSH connection
-#	ssh_connection.disconnect()
-#	FO.close()
+		result = ssh_connection.find_prompt() + "\n"
+		#for cmd in cmdList:
+		lock.acquire()
+		log.WriteToFile(hostname + ": send command --> " + cmd)
+		lock.release()
+		ssh_output = exec_command(ssh_connection,cmd,device)
+		parse = _ParseFlap(ssh_output)
+		try:
+			parse.do()
+		except:
+			pass
+		if parse.list: 
+			tmp_dict.update({device['ip']: parse.list})
+			manager_dict.update(tmp_dict)
+		ssh_connection.disconnect()
+		lock.acquire()
+		log.WriteToFile(hostname + ": ssh session closed")
+		lock.release()
+
+"""
+def CollectData(device, manager_dict, lock):
+	c = {'10.35.81.21': [{'End Date': u'2018-11-13', 'MAC Address': u'b40c-25e0-4010', 'Bridge Domain': u'1042130', 'Start Time': u'12:14:39', 'End Time': u'12:14:39', 'Move number': 2, 'Start Date': u'2018-11-13'}, {'End Date': u'2018-11-15', 'MAC Address': u'0000-5e00-0133', 'Bridge Domain': u'1040003', 'Start Time': u'19:23:31', 'End Time': u'19:23:31', 'Move number': 1, 'Start Date': u'2018-11-15'}], '10.35.81.22': [{'End Date': u'2018-11-15', 'MAC Address': u'0000-5e00-01aa', 'Bridge Domain': u'1040003', 'Start Time': u'19:23:31', 'End Time': u'19:23:31', 'Move number': 1, 'Start Date': u'2018-11-15'}]}
+	
+	hostname = device['host']
+	log = OperationLog()
+	lock.acquire()
+	log.WriteToFile(hostname + "--" +"start checking")
+	lock.release()
+	manager_dict.update(c)
+"""

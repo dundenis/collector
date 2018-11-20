@@ -1,0 +1,50 @@
+############################################
+#display version
+############################################
+
+display mac-address flapping
+#display current int nve
+#display vxlan tunnel
+#display vxlan vni
+#display cu int nve 1
+#display sys mac
+#display cu int nve 1
+#display cu int loopback 1
+#display m-lag troubleshooting
+#display dfs-group 1 m-lag
+#display error-down recovery
+#display device
+#display device power system
+#display device fan
+#display device voltage all
+#display device temperature all
+#display system tcam resource acl
+#display version
+#display patch-information verbose
+#display alarm active
+#display device alarm hardware
+#display health
+#
+#diagnose
+#display system internal hardware crc
+#display system tcam ser brief
+#display exception 20
+#display deadloop 20
+#display assert 20
+#display forward capability
+#quit
+#
+#display cpu-defend statistics packet-type bgp all
+#display cpu-defend statistics packet-type arp all
+#display bgp peer
+#display bgp vpnv4 all peer
+#display mac-address flapping
+#display arp packet statistics
+#display ip routing-table statistics
+#display ip routing-table all-vpn-instance statistics
+#display bgp routing-table statistics
+#display bgp vpnv4 all routing-table statistics
+#display bfd session all
+#display interface brief | exclude down
+#display logfile flash:/logfile/diag.log | inc "SDK" | inc "name="
+#display interface transceiver verbose
